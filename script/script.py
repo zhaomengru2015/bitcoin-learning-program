@@ -8,15 +8,6 @@ class Script:
             cmds = []
         self.cmds = cmds
 
-    def __repr__(self):
-        result = 'Script Cmd: '
-        for cmd in self.cmds:
-            if type(cmd) == int:
-                result += str(cmd) + ' '
-            else:
-                result += cmd.hex() + ' '
-        return result
-
     @classmethod
     def parse(cls, s):
         len = read_varint(s)  # total bytes
@@ -26,6 +17,7 @@ class Script:
             current = s.read(1)
             count += 1
             current_byte = current[0]
+            print("parsing script len {} current_byte {} count {}\n\n".format(len,current_byte, count))
             # 0x01 ~ 0x75 is the length to be read
             if current_byte >= 1 and current_byte <= 75:
                 n = current_byte
@@ -44,7 +36,7 @@ class Script:
                 cmds.append(op_code)
         if count != len:
             raise SyntaxError('parsing script failed')
-        return Script(cmds)
+        return cmds
 
     def raw_serialize(self):
         result = b''
@@ -80,8 +72,7 @@ class Script:
             cmd = cmds.pop(0)
             if type(cmd) == int:
                 operation = OP_CODE_FUNCTIONS[cmd]
-                print("evaluate command cmd {}, type(cmd) {}, operation {} stack {} \n\n".format(cmd, type(cmd),
-                                                                                                 operation, stack))
+                print("evaluate command cmd {}, type(cmd) {}, operation {} stack {} \n\n".format(cmd,type(cmd), operation, stack))
                 if cmd in (99, 100):
                     if not operation(stack, cmds):
                         LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))

@@ -15,11 +15,6 @@ class Tx:
         self.locktime = locktime
         self.testnet = testnet
 
-    def fee(self):
-        inputs_sum = sum([x.value(self.testnet) for x in self.tx_ins])
-        outputs_sum = sum([x.amount for x in self.tx_outs])
-        return inputs_sum - outputs_sum
-
     @classmethod
     def parse(cls, stream, testnet=False):
         serialized_version = stream.read(4)
@@ -32,12 +27,11 @@ class Tx:
         tx_outs = []
         for tx_out in range(tx_out_number):
             tx_outs.append(TxOut.parse(stream))
-        locktime = little_endian_to_int(stream.read(4))
-        print("parse tx: version: {}, locktime: {}".format(version, locktime))
-        for tx_in in tx_ins:
-            print(f"tx_in: {tx_in}\n")
-        for tx_out in tx_outs:
-            print(f"tx_out: {tx_out}\n")
+        locktime = stream.read(4)
+        print("parse tx: {}, version: {}, tx_in_number: {}, tx_out_number: {} locktime: {}".format(stream, version,
+                                                                                                   tx_in_number,
+                                                                                                   tx_out_number,
+                                                                                                   locktime))
         return cls(version, tx_ins, tx_outs, locktime, testnet)
 
     def serialize(self):
@@ -67,7 +61,7 @@ class Tx:
         )
 
     def id(self):
-        return self.hash().hex()
+        return self.hash()
 
     def hash(self):
         return hash256(self.serialize())[::-1]
@@ -78,13 +72,15 @@ class TxIn:
         self.prev_tx = prev_tx
         self.prev_index = prev_index
         if not script_sig:
-            self.script_sig = Script()
+            raise NotImplemented
+            # TODO
+            # self.script_sig = Script()
         else:
             self.script_sig = script_sig
         self.sequence = sequence
 
     def fetch(self, testnet=False):
-        return TxFetcher.fetch(self.prev_tx.hex(), testnet)
+        return TxFetcher.fetch(self.prev_tx, testnet)
 
     def value(self, testnet=False):
         tx = self.fetch(testnet)
@@ -100,6 +96,9 @@ class TxIn:
         prev_index = little_endian_to_int(stream.read(4))
         script_sig = Script.parse(stream)
         sequence = little_endian_to_int(stream.read(4))
+        print("parse txins: {}, prev_tx: {}, prev_index: {}, script_sig: {}, sequence: {}".format(stream, prev_tx,
+                                                                                                  prev_index,
+                                                                                                  script_sig, sequence))
         return cls(prev_tx, prev_index, script_sig, sequence)
 
     def serialize(self):
@@ -108,13 +107,6 @@ class TxIn:
         result += self.script_sig.serialize()
         result += int_to_little_endian(self.sequence, 4)
         return result
-
-    def __repr__(self):
-        return '{}:{}:{}'.format(
-            self.prev_tx.hex(),
-            self.prev_index,
-            self.script_sig
-        )
 
 
 class TxOut:
@@ -131,7 +123,7 @@ class TxOut:
     def __repr__(self):
         return '{}:{}'.format(self.amount, self.script_pubkey)
 
-    def serialize(self):
+    def serialization(self):
         result = int_to_little_endian(self.amount, 8)
         result += self.script_pubkey.serialize()
         return result
@@ -152,7 +144,6 @@ class TxFetcher:
     def fetch(cls, tx_id, testnet=False, fresh=False):
         if fresh or (tx_id not in cls.cache):
             url = '{}/tx/{}/hex'.format(cls.get_url(testnet), tx_id)
-            print(f"TxFetcher fetch transactions: {url}\n")
             response = requests.get(url)
             try:
                 raw = bytes.fromhex(response.text.strip())

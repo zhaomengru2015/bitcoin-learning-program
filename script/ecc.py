@@ -33,9 +33,8 @@ class FiniteElement:
         return self.__class__(num=num, prime=self.prime)
 
     def __pow__(self, exponent):
-        n = exponent % (self.prime - 1)
-        num = pow(self.num, n, self.prime)
-        return self.__class__(num, self.prime)
+        num = (self.num ** exponent) % self.prime
+        return self.__class__(num=num, prime=self.prime)
 
     def __truediv__(self, other):
         num = self.num * pow(other.num, self.prime - 2, self.prime) % self.prime
@@ -57,7 +56,7 @@ class S256Field(FiniteElement):
         return '{:x}'.format(self.num).zfill(64)
 
     def sqrt(self):
-        return self ** ((P + 1) // 4)
+        return self ** ((P + 1) / 4)
 
 
 class Point:
@@ -245,7 +244,7 @@ class S256Point(Point):
         x = S256Field(int.from_bytes(sec_bin[1:], 'big'))
         alpha = x ** 3 + S256Field(B)
         beta = alpha.sqrt()
-        if beta.num % 2 == 0:
+        if beta % 2 == 0:
             even_beta = beta
             odd_beta = S256Field(P - beta.num)
         else:
@@ -271,3 +270,6 @@ class S256Point(Point):
 G = S256Point(
     0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798,
     0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8)
+
+
+
