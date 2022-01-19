@@ -394,6 +394,7 @@ def op_equal(stack):
         return False
     element1 = stack.pop()
     element2 = stack.pop()
+    print("op_equal: element1 {}, element2 {}".format(element1.hex(), element2.hex()))
     if element1 == element2:
         stack.append(encode_num(1))
     else:
@@ -657,6 +658,7 @@ def op_hash160(stack):
     if len(stack) < 1:
         return False
     element = stack.pop()
+    print("op_hash160 {}".format(element.hex()))
     stack.append(hash160(element))
     return True
 

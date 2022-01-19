@@ -9,13 +9,17 @@ class Script:
         self.cmds = cmds
 
     def __repr__(self):
-        result = 'Script Cmd: '
+        result = []
         for cmd in self.cmds:
             if type(cmd) == int:
-                result += str(cmd) + ' '
+                if OP_CODE_NAMES.get(cmd):
+                    name = OP_CODE_NAMES.get(cmd)
+                else:
+                    name = 'OP_[{}]'.format(cmd)
+                result.append(name)
             else:
-                result += cmd.hex() + ' '
-        return result
+                result.append(cmd.hex())
+        return ' '.join(result)
 
     @classmethod
     def parse(cls, s):
@@ -110,3 +114,7 @@ class Script:
         result = self.raw_serialize()
         total = len(result)
         return encode_varint(total) + result
+
+
+def p2pkh_script(h160):
+    return Script([0x76, 0xa9, h160, 0x88, 0xac])

@@ -3,6 +3,9 @@ from unittest import TestCase, TestSuite, TextTestRunner
 import hashlib
 
 
+SIGHASH_ALL = 1
+SIGHASH_NONE = 2
+SIGHASH_SINGLE = 3
 BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
@@ -44,16 +47,19 @@ def encode_base58_checksum(s):
     return encode_base58(s + hash256(s)[:4])
 
 
+# tag::source1[]
 def decode_base58(s):
     num = 0
-    for c in s:
+    for c in s:  # <1>
         num *= 58
         num += BASE58_ALPHABET.index(c)
-    combined = num.to_bytes(25, byteorder='big')
+    combined = num.to_bytes(25, byteorder='big')  # <2>
     checksum = combined[-4:]
     if hash256(combined[:-4])[:4] != checksum:
-        raise ValueError('bad address: {} {}'.format(checksum, hash256(combined[:-4])[:4]))
-    return combined[1:-4]
+        raise ValueError('bad address: {} {}'.format(checksum,
+          hash256(combined[:-4])[:4]))
+    return combined[1:-4]  # <3>
+# end::source1[]
 
 
 def little_endian_to_int(b):
@@ -68,7 +74,6 @@ def int_to_little_endian(n, length):
     return n.to_bytes(length, 'little')
 
 
-# tag::source1[]
 def read_varint(s):
     '''read_varint reads a variable integer from a stream'''
     i = s.read(1)[0]
@@ -98,7 +103,6 @@ def encode_varint(i):
         return b'\xff' + int_to_little_endian(i, 8)
     else:
         raise ValueError('integer too large: {}'.format(i))
-# end::source1[]
 
 
 class HelperTest(TestCase):
@@ -118,3 +122,11 @@ class HelperTest(TestCase):
         n = 10011545
         want = b'\x99\xc3\x98\x00\x00\x00\x00\x00'
         self.assertEqual(int_to_little_endian(n, 8), want)
+
+    def test_base58(self):
+        addr = 'mnrVtF8DWjMu839VW3rBfgYaAfKk8983Xf'
+        h160 = decode_base58(addr).hex()
+        want = '507b27411ccf7f16f10297de6cef3f291623eddf'
+        self.assertEqual(h160, want)
+        got = encode_base58_checksum(b'\x6f' + bytes.fromhex(h160))
+        self.assertEqual(got, addr)
