@@ -2,7 +2,6 @@ from unittest import TestCase, TestSuite, TextTestRunner
 
 import hashlib
 
-
 BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 
@@ -98,7 +97,24 @@ def encode_varint(i):
         return b'\xff' + int_to_little_endian(i, 8)
     else:
         raise ValueError('integer too large: {}'.format(i))
+
+
 # end::source1[]
+
+def h160_to_p2pkh_address(h160, testnet=False):
+    if testnet:
+        prefix = b'\x6f'
+    else:
+        prefix = b'\x00'
+    return encode_base58_checksum(prefix + h160)
+
+
+def h160_to_p2sh_address(h160, testnet=False):
+    if testnet:
+        prefix = b'\xc4'
+    else:
+        prefix = b'\x05'
+    return encode_base58_checksum(prefix + h160)
 
 
 class HelperTest(TestCase):
